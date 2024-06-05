@@ -1,26 +1,51 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+// src/App.tsx
+import React, { useState, useEffect } from 'react';
+import Calendar from './components/Calendar';
+import BirthdayList from './components/BirthdayList';
+import FavoriteBirthdays from './components/FavoriteBirthdays';
+import axios from 'axios';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+interface Birthday {
+    text: string;
 }
+
+const App: React.FC = () => {
+    const [birthdays, setBirthdays] = useState<Birthday[]>([]);
+    const [favorites, setFavorites] = useState<Birthday[]>([]);
+
+    const handleDateChange = async (date: Date | null) => {
+        if (date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            try {
+                const response = await axios.get(`https://api.wikimedia.org/feed/onthisday/births/${month}/${day}`);
+                setBirthdays(response.data.births);
+            } catch (error) {
+                console.error("Error fetching data: ", error);
+            }
+        }
+    };
+
+    const addFavorite = (birthday: Birthday) => {
+        setFavorites([...favorites, birthday]);
+    };
+
+    useEffect(() => {
+        const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        setFavorites(savedFavorites);
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+    }, [favorites]);
+
+    return (
+        <div>
+            <Calendar onDateChange={handleDateChange} />
+            <BirthdayList birthdays={birthdays} onFavorite={addFavorite} />
+            <FavoriteBirthdays favorites={favorites} />
+        </div>
+    );
+};
 
 export default App;
